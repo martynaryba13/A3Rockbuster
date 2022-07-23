@@ -1,0 +1,169 @@
+-- Summary from numerical columns of film table
+
+SELECT MIN (rental_duration) AS min_rental_duration,
+	MAX (rental_duration) AS max_rental_duration,
+	AVG (rental_duration) AS avg_rental_duration,
+	MIN (rental_rate) AS min_rental_rate,
+	MAX (rental_rate) AS max_rental_rate,
+	AVG (rental_rate) AS avg_rental_rate,
+	MIN (length) AS min_length,
+	MAX (length) AS max_length,
+	AVG (length) AS avg_length,
+	MIN (replacement_cost) AS min_replacement_cost,
+	MAX (replacement_cost) AS max_replacement_cost,
+	AVG (replacement_cost) AS max_replacement_cost
+FROM film;
+
+-- Summary from nonnumerical columns of film table
+
+SELECT mode() WITHIN GROUP (ORDER BY title)
+	AS modal_title,
+	mode() WITHIN GROUP (ORDER BY description)
+	AS modal_description,
+	mode() WITHIN GROUP (ORDER BY release_year)
+	AS modal_release_year,
+	COUNT (*) AS count_rows
+FROM film;
+
+-- Summary from numerical columns of customer table
+
+SELECT MIN (customer_id) AS min_customer_id,
+	MAX (customer_id) AS max_customer_id,
+	AVG (customer_id) AS avg_customer_id,
+	MIN (store_id) AS min_store_id,
+	MAX (store_id) AS max_store_id,
+	AVG (store_id) AS avg_store_id,
+	MIN (address_id) AS min_address_id,
+	MAX (address_id) AS max_address_id,
+	AVG (address_id) AS avg_address_id
+FROM customer;
+
+-- Summary from nonnumerical columns of customer table
+
+SELECT mode() WITHIN GROUP (ORDER BY first_name)
+	AS modal_first_name,
+	mode() WITHIN GROUP (ORDER BY last_name)
+	AS modal_last_name,
+	mode() WITHIN GROUP (ORDER BY email)
+	AS modal_email,
+	COUNT (*) AS count_rows
+FROM customer;
+
+-- Top 10 countries by customer
+
+SELECT D. country,
+	COUNT (customer_id) AS customer_count
+FROM customer A
+INNER JOIN address B ON A.address_id = B.address_id
+INNER JOIN city C ON B.city_id = C.city_id
+INNER JOIN country D ON c.country_id = D.country_id
+GROUP BY country
+ORDER BY customer_count DESC
+LIMIT 10;
+
+-- Top 10 cities in the top 10 countries by customer
+
+SELECT C.city,
+	D.country,
+	COUNT (A.customer_id) AS customer_count
+FROM customer A
+INNER JOIN address B ON A.address_id = B.address_id
+INNER JOIN city C ON B.city_id = C.city_id
+INNER JOIN country D ON C.country_id = D.country_id
+WHERE D.country IN ('India', 'China', 'United States', 'Japan', 'Mexico', 'Brazil', 'Russian Federation',  'Philippines', 'Turkey', 'Indonesia')
+GROUP BY country, city
+ORDER BY customer_count DESC
+LIMIT 10;
+
+-- Top 5 customers in the top 10 cities in the top 10 countries
+
+SELECT SUM(E.amount) AS total_amount_paid,
+	A.customer_id,
+	A.first_name,
+	A.last_name,
+	C.city,
+	D.country
+FROM customer A
+INNER JOIN payment E ON A.customer_id = E.customer_id
+INNER JOIN address B ON A.address_id = B.address_id
+INNER JOIN city C ON B.city_id = C.city_id
+INNER JOIN country D ON C.country_id = D.country_id
+WHERE C.city IN ('Aurora', 'Acua', 'Citrus Heights', 'Iwaki', 'Ambattur', 'Shanwei', 'So Leopoldo', 'Teboksary', 'Tianjin', 'Cianjur')
+GROUP BY A.customer_id, D.country_id, C.city_id
+ORDER BY total_amount_paid DESC
+LIMIT 5;
+
+-- Top 10 films 
+
+SELECT A.film_id, 
+	A.title AS title, 
+	A. rating AS rating,
+	C.name AS genre, 
+	SUM(E.amount) AS total_film_revenue
+FROM film A
+INNER JOIN film_category B ON A.film_id = B.film_id
+INNER JOIN category C ON B.category_id = C.category_id
+INNER JOIN inventory F ON A.film_id = F.film_id
+INNER JOIN rental D ON F.inventory_id = D.inventory_id
+INNER JOIN payment E ON D.rental_id = E.rental_id
+GROUP BY A.film_id, A.title, A. rating, C.name
+ORDER BY total_film_revenue DESC
+LIMIT 10;
+
+-- Bottom 10 films
+
+SELECT A.film_id, 
+	A.title AS title, 
+	A. rating AS rating,
+	C.name AS genre, 
+	SUM(E.amount) AS total_film_revenue
+FROM film A
+INNER JOIN film_category B ON A.film_id = B.film_id
+INNER JOIN category C ON B.category_id = C.category_id
+INNER JOIN inventory F ON A.film_id = F.film_id
+INNER JOIN rental D ON F.inventory_id = D.inventory_id
+INNER JOIN payment E ON D.rental_id = E.rental_id
+GROUP BY A.film_id, A.title, A. rating, C.name
+ORDER BY total_film_revenue ASC
+LIMIT 10;
+
+-- Revenue by genre
+
+SELECT C.name AS genre, 
+	COUNT(A.film_id), 
+	SUM(E.amount) AS total_film_revenue
+FROM film A
+INNER JOIN film_category B ON A.film_id = B.film_id
+INNER JOIN category C ON B.category_id = C.category_id
+INNER JOIN inventory F ON A.film_id = F.film_id
+INNER JOIN rental D ON F.inventory_id = D.inventory_id
+INNER JOIN payment E ON D.rental_id = E.rental_id
+GROUP BY C.name
+ORDER BY total_film_revenue DESC;
+
+-- Revenue by rating
+
+SELECT A.rating AS rating, 
+	COUNT(A.film_id) AS number_of_films, 
+	SUM(E.amount) AS total_film_revenue
+FROM film A
+INNER JOIN film_category B ON A.film_id = B.film_id
+INNER JOIN category C ON B.category_id = C.category_id
+INNER JOIN inventory F ON A.film_id = F.film_id
+INNER JOIN rental D ON F.inventory_id = D.inventory_id
+INNER JOIN payment E ON D.rental_id = E.rental_id
+GROUP BY A. rating
+ORDER BY total_film_revenue DESC;
+
+-- Revenue by customers and country
+
+SELECT country,
+       COUNT(A.customer_id) AS customer_count,
+       SUM(amount) AS total_revenue
+FROM customer A
+INNER JOIN address B ON A.address_id = B.address_id
+INNER JOIN city C ON B.city_id = C.city_id
+INNER JOIN country D ON C.country_ID = D.country_ID
+INNER JOIN payment E ON a.customer_id = E.customer_id
+GROUP BY country
+ORDER BY total_revenue DESC;
